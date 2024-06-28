@@ -1,0 +1,47 @@
+services:
+    suricata:
+        build: .
+#        image: jasonish/suricata:latest
+        container_name: suricata
+        stdin_open: true
+        tty: true
+        network_mode: host
+        cap_add:
+            - net_admin
+            - net_raw
+            - sys_nice
+            - sys_time  # Adicionado para permitir a alteração da hora
+        volumes:
+            - ./logs:/var/log/suricata
+            - ./suricata.yaml:/etc/suricata/suricata.yaml
+            - ./rules/melman.rules:/var/lib/suricata/rules/melman.rules
+            - ./rules/emerging-exploit.rules:/var/lib/suricata/rules/emerging-exploit.rules
+            - ./rules/emerging-malware.rules:/var/lib/suricata/rules/emerging-malware.rules
+            - ./rules/emerging-scada.rules:/var/lib/suricata/rules/tor.rules
+            - ./rules/compromised.rules:/var/lib/suricata/rules/compromised.rules
+            - ./rules/emerging-shellcode.rules:/var/lib/suricata/rules/emerging-shellcode.rules
+            - ./threshold.config:/etc/suricata/threshold.config
+            - ./suricata.rules:/var/lib/suricata/rules/suricata.rules
+            - /etc/timezone:/etc/timezone:ro  # Montar timezone do host
+            - /etc/localtime:/etc/localtime:ro  # Montar localtime do host
+#        command: suricata -i ens37
+        entrypoint: ["usr/local/bin/entrypoint.sh"]
+    evebox:
+        image: jasonish/evebox:latest
+        container_name: evebox
+        network_mode: host
+        cap_add:
+            - net_admin
+            - net_raw
+            - sys_nice
+            - sys_time
+        ports:
+          - "5636:5636"
+        volumes:
+#          - ./data:/data
+          - ./logs/eve.json:/var/log/evebox/eve.json:ro
+          - /etc/timezone:/etc/timezone:ro  # Montar timezone do host
+          - /etc/localtime:/etc/localtime:ro  # Montar localtime do host
+        command: evebox server --host 0.0.0.0 -D /etc/evebox/ --datastore sqlite --input /var/log/evebox/eve.json --no-auth --no-tls
+#        command: evebox server -D /data --datastore sqlite --input /var/log/evebox/eve.json
+

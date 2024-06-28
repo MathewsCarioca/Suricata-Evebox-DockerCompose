@@ -1,0 +1,45 @@
+#Regras de Pedra REV 1.0
+
+#Regra para DNS sempre apontar para o FW
+alert dns any any -> ![$FIREWALLMGMT,$FIREWALLICS] 53 (msg:"Requisição DNS para servidor diferente do FW"; classtype:policy-violation; sid:2; rev:1; priority:2;)
+
+# SEGMENTAÇÃO DE ZONAS
+alert ip $MGMT any <> [$HOME_NET,!$APDAREDE] any (msg:"Comunicação externa com a Rede ICS <> MGMT"; classtype:policy-violation; sid:3; rev:1; priority:2;)
+alert ip $WIFI any <> [$HOME_NET,!$APDAREDE] any (msg:"Comunicação externa com a Rede ICS <> WIFI"; classtype:policy-violation; sid:4; rev:1; priority:2;)
+#alert ip $REDE_INTERNA any <> $REDE_EXTERNA any (msg:"REGRA DE EXEMPLO INT <> EXT"; classtype:policy-violation; sid:4; rev:1; priority:2;)
+
+# Alertar FTP
+alert ftp any any -> any any (msg:"Alerta de protocolo FTP"; classtype:non-standard-protocol; sid:6; rev:1; priority:1;)
+
+alert dnp3 any any -> any any (msg:"teste"; classtype:non-standard-protocol; sid:1000000; rev:1; priority:1;)
+
+# Alertas SMB
+alert smb any any -> any any (msg:"SMBv1 version rule"; smb.version:1; classtype:non-standard-protocol; sid:8; priority:1;)
+alert smb any any -> any any (msg:"SMBv2 version rule"; smb.version:2; classtype:non-standard-protocol; sid:9; priority:1;)
+alert tcp any any <> any 445 (msg:"Alerta de uso da porta 445, possível tentativa de exploit"; classtype:unusual-client-port-connection; sid:10; rev:1; priority:1;)
+
+# Alerta relacionado a porta usada pelo protocolo TELNET
+alert tcp any any <> any 23 (msg:"Uso da porta 23 (Telnet/Aplicação em porta incorreta/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:11; rev:1; priority:1;)
+alert udp any any <> any 23 (msg:"Uso da porta 23 (Telnet/Aplicação em porta incorreta/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:12; rev:1; priority:1;)
+
+# Alerta relacionado a porta usada pelo protocolo IRC
+alert tcp any any <> any [6665, 6666, 6667, 6668, 6669] (msg:"Uso da porta 6665-6669 (IRC/Aplicação em porta vulnerável/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:13; rev:1; priority:1;)
+alert udp any any <> any [6665, 6666, 6667, 6668, 6669] (msg:"Uso da porta 6665-6669 (IRC/Aplicação em porta vulnerável/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:14; rev:1; priority:1;)
+
+# Alertas relacionado a porta usada pelo protocolo VNC
+alert rfb any any -> any any (msg:"Alerta protocolo RFB/VNC"; classtype:non-standard-protocol; sid:15; rev:1; priority:1;)
+
+# RESTRIÇÃO DE ACESSO A INTERNET
+alert ip $HOME_NET any <> [!$HOME_NET, $EXTERNAL_NET] any (msg:"Possível acesso a internet"; classtype:policy-violation; sid:16; rev:1; priority:1;)
+
+#
+
+alert modbus any any -> any any (msg:"SURICATA Modbus invalid Protocol version"; app-layer-event:modbus.invalid_protocol_id; classtype:protocol-command-decode; sid:2250001; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus unsolicited response"; app-layer-event:modbus.unsolicited_response; classtype:protocol-command-decode; sid:2250002; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus invalid Length"; app-layer-event:modbus.invalid_length; classtype:protocol-command-decode; sid:2250003; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus invalid Unit Identifier"; app-layer-event:modbus.invalid_unit_identifier; classtype:protocol-command-decode; sid:2250004; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus invalid Function code"; app-layer-event:modbus.invalid_function_code; classtype:protocol-command-decode; sid:2250005; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus invalid Value"; app-layer-event:modbus.invalid_value; classtype:protocol-command-decode; sid:2250006; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus Exception code invalid"; flow:to_client; app-layer-event:modbus.invalid_exception_code; classtype:protocol-command-decode; sid:2250007; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus Data mismatch"; flow:to_client; app-layer-event:modbus.value_mismatch; classtype:protocol-command-decode; sid:2250008; rev:2;)
+alert modbus any any -> any any (msg:"SURICATA Modbus Request flood detected"; flow:to_server; app-layer-event:modbus.flooded; classtype:protocol-command-decode; sid:2250009; rev:2;)
