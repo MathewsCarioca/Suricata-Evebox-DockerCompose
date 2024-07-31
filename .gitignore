@@ -1,0 +1,5 @@
+#ignorando arquivos de log e etc.
+
+/logs
+/rules
+/entrypoint.sh.save
