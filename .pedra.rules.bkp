@@ -1,0 +1,53 @@
+#Regras de Pedra REV 1.0
+
+#Regra para DNS sempre apontar para o FW
+#alert dns any any -> ![$FIREWALLMGMT,$FIREWALLICS] 53 (msg:"Requisição DNS para servidor diferente do FW"; classtype:policy-violation; sid:2; rev:1; priority:2;)
+
+# SEGMENTAÇÃO DE ZONAS
+#alert ip $MGMT any <> [$HOME_NET,!$APDAREDE] any (msg:"Comunicação externa com a Rede ICS <> MGMT"; classtype:policy-violation; sid:3; rev:1; priority:2;)
+#alert ip $WIFI any <> [$HOME_NET,!$APDAREDE] any (msg:"Comunicação externa com a Rede ICS <> WIFI"; classtype:policy-violation; sid:4; rev:1; priority:2;)
+##alert ip $REDE_INTERNA any <> $REDE_EXTERNA any (msg:"REGRA DE EXEMPLO INT <> EXT"; classtype:policy-violation; sid:4; rev:1; priority:2;)
+
+# Alertar FTP
+alert ftp any any -> any any (msg:"Alerta de protocolo FTP"; classtype:non-standard-protocol; sid:6; rev:1; priority:1;)
+
+# Alertas SMB
+alert smb any any -> any any (msg:"SMBv1 version rule"; smb.version:1; classtype:non-standard-protocol; threshold: type limit, track by_src, seconds 180, count 1; sid:8; priority:1;)
+alert smb any any -> any any (msg:"SMBv2 version rule"; smb.version:2; classtype:non-standard-protocol; threshold: type limit, track by_src, seconds 180, count 1; sid:9; priority:1;)
+alert tcp any any <> any 445 (msg:"Alerta de uso da porta 445, possível tentativa de exploit"; classtype:unusual-client-port-connection; threshold: type limit, track by_src, seconds 180, count 1; sid:10; rev:1; priority:1;)
+
+# Alerta relacionado a porta usada pelo protocolo TELNET
+alert tcp any any <> any 23 (msg:"Uso da porta 23 (Telnet/Aplicação em porta incorreta/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:11; rev:1; priority:1;)
+alert udp any any <> any 23 (msg:"Uso da porta 23 (Telnet/Aplicação em porta incorreta/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:12; rev:1; priority:1;)
+
+# Alerta relacionado a porta usada pelo protocolo IRC
+alert tcp any any <> any [6665, 6666, 6667, 6668, 6669] (msg:"Uso da porta 6665-6669 (IRC/Aplicação em porta vulnerável/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:13; rev:1; priority:1;)
+alert udp any any <> any [6665, 6666, 6667, 6668, 6669] (msg:"Uso da porta 6665-6669 (IRC/Aplicação em porta vulnerável/tentativa de exploit)"; classtype:unusual-client-port-connection; sid:14; rev:1; priority:1;)
+
+# Alertas relacionado a porta usada pelo protocolo VNC
+alert rfb any any -> any any (msg:"Alerta protocolo RFB/VNC"; classtype:non-standard-protocol; sid:15; rev:1; priority:1;)
+
+# RESTRIÇÃO DE ACESSO A INTERNET
+#alert ip $HOME_NET any <> [!$HOME_NET, $EXTERNAL_NET] any (msg:"Possível acesso a internet"; classtype:policy-violation; sid:16; rev:1; priority:1;)
+
+#alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET CURRENT_EVENTS BlackEnergy URI Struct Oct 17 2014 BE1"; flow:established,to_server; content:"/YXJyYWtpczAy/"; http_uri; reference:url,github.com/hosom/bro-sandworm/blob/master/sandworm.sig; classtype:trojan-activity; sid:2019461; rev:2; metadata:created_at 2014_10_17, updated_at 2019_07_26;)
+#alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET CURRENT_EVENTS BlackEnergy URI Struct Oct 17 2014 BE2"; flow:established,to_server; content:"/aG91c2VhdHJlaWRlczk0/"; http_uri; reference:url,github.com/hosom/bro-sandworm/blob/master/sandworm.sig; classtype:trojan-activity; sid:2019462; rev:2; metadata:created_at 2014_10_17, updated_at 2019_07_26;)
+#alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET CURRENT_EVENTS BlackEnergy URI Struct Oct 17 2014 BE3"; flow:established,to_server; content:"/QmFzaGFyb2Z0aGVTYXJkYXVrYXJz/"; http_uri; reference:url,github.com/hosom/bro-sandworm/blob/master/sandworm.sig; classtype:trojan-activity; sid:2019463; rev:2; metadata:created_at 2014_10_17, updated_at 2019_07_26;)
+#alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET CURRENT_EVENTS BlackEnergy URI Struct Oct 17 2014 BE4"; flow:established,to_server; content:"/U2FsdXNhU2VjdW5kdXMy/"; http_uri; reference:url,github.com/hosom/bro-sandworm/blob/master/sandworm.sig; classtype:trojan-activity; sid:2019464; rev:2; metadata:created_at 2014_10_17, updated_at 2019_07_26;)
+#alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"ET CURRENT_EVENTS BlackEnergy URI Struct Oct 17 2014 BE5"; flow:established,to_server; content:"/ZXBzaWxvbmVyaWRhbmkw/"; http_uri; reference:url,github.com/hosom/bro-sandworm/blob/master/sandworm.sig; classtype:trojan-activity; sid:2019465; rev:2; metadata:created_at 2014_10_17, updated_at 2019_07_26;)
+
+#alert smb any any -> $HOME_NET any (msg: "ATTACK [PTsecurity] Unimplemented Trans2 Sub-Command code. Possible ETERNALBLUE (WannaCry, Petya) tool"; flow: to_server, established; content: "|FF|SMB2|00 00 00 00|"; depth: 9; offset: 4; byte_test: 2, >, 0x0008, 52, relative, little; pcre: "/\xFFSMB2\x00\x00\x00\x00.{52}(?:\x04|\x09|\x0A|\x0B|\x0C|\x0E|\x11)\x00/s"; flowbits: set, SMB.Trans2.SubCommand.Unimplemented; reference: url, msdn.microsoft.com/en-us/library/ee441654.aspx; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; sid: 10001254; rev: 2;)
+#alert smb any any -> $HOME_NET any (msg: "ATTACK [PTsecurity] ETERNALBLUE (WannaCry, Petya) SMB MS Windows RCE"; flow: to_server, established; content: "|FF|SMB3|00 00 00 00|"; depth: 9; offset: 4; flowbits: isset, SMB.Trans2.SubCommand.Unimplemented; threshold: type limit, track by_src, seconds 60, count 1; reference: cve, 2017-0144; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; sid: 10001255; rev: 3;)
+#alert smb any any -> $HOME_NET any (msg: "ATTACK [PTsecurity] Trans2 Sub-Command 0x0E. Likely ETERNALBLUE (WannaCry, Petya) tool"; flow: to_server, established; content: "|FF|SMB2|00 00 00 00|"; depth: 9; offset: 4; content: "|0E 00|"; distance: 52; within: 2; flowbits: set, SMB.Trans2.SubCommand.Unimplemented.Code0E; reference: url, msdn.microsoft.com/en-us/library/ee441654.aspx; classtype: attempted-admin; reference: url, github.com/ptresearch/AttackDetection; sid: 10001256; rev: 2;)
+#alert smb any any -> $HOME_NET any (msg: "ATTACK [PTsecurity] Petya ransomware perfc.dat component"; flow: to_server, established, no_stream; content: "|fe 53 4d 42|"; offset: 4; depth: 4; content: "|05 00|"; offset: 16; depth: 2; byte_jump: 2, 112, little, from_beginning, post_offset 4; content: "|70 00 65 00 72 00 66 00 63 00 2e 00 64 00 61 00 74 00|"; distance:0; classtype:suspicious-filename-detect; reference: url, github.com/ptresearch/AttackDetection; sid: 10001443; rev: 1;)
+#alert smb any any -> $HOME_NET any (msg:"ATTACK [PTsecurity] SMB2 Create PSEXESVC.EXE"; flow:to_server, established, no_stream; content: "|fe 53 4d 42|"; offset: 4; depth: 4; content: "|05 00|"; offset: 16; depth: 2; byte_jump: 2, 112, little, from_beginning, post_offset 4; content:"|50 00 53 00 45 00 58 00 45 00 53 00 56 00 43 00 2e 00 45 00 58 00 45|"; distance:0; classtype:suspicious-filename-detect; reference: url, github.com/ptresearch/AttackDetection; sid: 10001444; rev:1;)
+
+#alert tcp any any -> any any (msg:"testani"; sid: 66736; rev:1; priority:1; tcp.flags:SA;)
+#alert tcp any any -> any any (msg:"testani"; sid: 66737; rev:1; priority:1; tcp.flags:A;)
+#alert tcp any any -> any any (msg:"testani"; sid: 66740; rev:1; priority:1; tcp.flags:S;)
+
+# Trickbot
+#alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"TROJAN Win32/Trickbot Data Exfiltration"; flow:established,to_server; content:"POST"; http_method; content:"name=\"proclist\"";content:"svchost.exe";content:"name=\"sysinfo\"";content:"ipconfig";content:"net view /all";content:"nltest";distance:0; reference:md5,f99adab7b2560097119077b99aceb40d; classtype:trojan-activity; sid:1001001;rev:1; )
+#alert tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"TROJAN Win32/Trickbot Checkin"; flow:established,to_server; content:"POST"; http_method; content:"/yas8/";http_uri;content:"User-Agent|3a 20|Winhttp 1/0"; http_header; reference:md5,f99adab7b2560097119077b99aceb40d; classtype:trojan-activity; sid:1001002;rev:1; )
+
+alert ssh any any <> any any (msg:"Regra teste para vulnerabilidade RegreSSHion"; ssh.software; content:"openssh"; nocase; pcre:"/.*OpenSSH_(([0-3]\.[0-9])|(4\.[0-3])|(8\.[5-9])|(9\.[0-8])).*?p?1.*/i"; reference:url,cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-6387; sid:110238; rev:1;)
